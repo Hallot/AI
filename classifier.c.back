@@ -1,0 +1,311 @@
+// Training set : 10 random files but % kept, 5 sound and 5 silent
+// Total set : 100 -> testing set : 90 files = 9 * 10
+// Caracteristics : E > 24, M > 15, Z < 0.1
+// Let's cll them E and ¬E, M and ¬M, Z and ¬Z
+// I don't really know how to choose those values so I chose ones that seemed to be good cut of points.
+// I don't know either if 10 is enough, or what value I should choose
+
+// Carac           E   |    ¬E    ||   M   |     ¬M    ||    Z   |    ¬Z    | Total
+//              ___________________________________________________________________
+// Sound       |   5   |     0    ||   5   |     0     ||    1   |     4    |   5  |
+// Silence     |   0   |     5    ||   0   |     5     ||    0   |     5    |   5  |
+//             ____________________________________________________________________|
+// Total       |   5   |     5    ||   5   |     5     ||    1   |     9    |  10  |
+//             |___________________________________________________________________|
+
+// Prior probabilities and base rates
+// P(Sound) = 0.5
+// P(Silence) = 0.5
+
+// Probability of "evidence"
+// P(E) = 0.5
+// P(M) = 0.5
+// P(Z) = 0.1
+
+// Probability of "likelihood"
+// P(E/Sound) = 1
+// P(M/Sound) = 1
+// P(Z/Sound) = 0.2
+// P(E/Silence) = 0
+// P(M/Silence) = 0
+// P(Z/Silence) = 0
+
+#DEFINE CUT_E 24.0
+#DEFINE CUT_M 15.0
+#DEFINE CUT_Z 0.1
+
+// Variables
+int n_total = 10;
+int n_sound = 5;
+int n_silence = 5;
+
+int n_e_so = 5;
+int n_m_so = 5;
+int n_z_so = 1;
+
+int n_e_si = 0;
+int n_m_si = 0;
+int n_z_si = 0;
+
+// 2-dim array containing probability information
+// schema (same for Si)
+//   ________________________________________________
+//  |   P(So)   || P(E/So)  | P(M/So)  |   P(Z/So)   |
+//  |   P(¬So)  || P(¬E/So) | P(¬M/So) |   P(¬Z/So)  |
+//  |________________________________________________|
+
+
+double P_So[4][2];
+double P_Si[4][2];
+
+P_So[0][0] = n_sound / n_total;
+P_So[0][1] = 1 - P_So[0][0];
+P_So[1][0] = n_e_so / n_sound;
+P_So[1][1] = 1 - P_So[1][0];
+P_So[2][0] = n_m_so / n_sound;
+P_So[2][1] = 1 - P_So[2][0];
+P_So[3][0] = n_z_so / n_sound;
+P_So[3][1] = 1 - P_So[3][0];
+
+P_Si[0][0] = n_silence / n_total;
+P_Si[0][1] = 1 - P_Si[0][0];
+P_Si[1][0] = n_e_si / n_silence;
+P_Si[1][1] = 1 - P_Si[1][0];
+P_Si[2][0] = n_m_si / n_silence;
+P_Si[2][1] = 1 - P_Si[2][0];
+P_Si[3][0] = n_z_si / n_silence;
+P_Si[3][1] = 1 - P_Si[3][0];
+
+
+double Pso = 0.5;
+double Psi = 0.5;
+
+double PEso = 1;
+double PMso = 1;
+double PZso = 0.2;
+double PEsi = 0;
+double PMsi = 0;
+double PZsi = 0;
+
+void update_values()
+{
+  P_So[0][0] = n_sound / n_total;
+  P_So[0][1] = 1 - P_So[0][0];
+  P_So[1][0] = n_e_so / n_sound;
+  P_So[1][1] = 1 - P_So[1][0];
+  P_So[2][0] = n_m_so / n_sound;
+  P_So[2][1] = 1 - P_So[2][0];
+  P_So[3][0] = n_z_so / n_sound;
+  P_So[3][1] = 1 - P_So[3][0];
+
+  P_Si[0][0] = n_silence / n_total;
+  P_Si[0][1] = 1 - P_Si[0][0];
+  P_Si[1][0] = n_e_si / n_silence;
+  P_Si[1][1] = 1 - P_Si[1][0];
+  P_Si[2][0] = n_m_si / n_silence;
+  P_Si[2][1] = 1 - P_Si[2][0];
+  P_Si[3][0] = n_z_si / n_silence;
+  P_Si[3][1] = 1 - P_Si[3][0];
+}
+
+
+int return_category(double e, double m, double z)
+{
+  double p1;
+  double p2;
+  
+  int te = e < CUT_E;
+  int tm = m < CUT_M;
+  int tm = z > CUT_Z;
+  
+  p1 = P_So[0][0] * P_So[te][1] * P_So[tm][2] * P_So[tz][3];
+  p2 = P_Si[0][0] * P_Si[te][1] * P_Si[tm][2] * P_Si[tz][3];
+
+
+// In this function, we don't calculate P(evidence) = P(E).P(M).P(Z) on purpose
+// It has no value since both p1 and p2 will be divided by it
+// Return 1 if sound and 0 if silence
+// Update the base values at the same time
+int return_category(double e, double m, double z)
+{
+  double p1;
+  double p2;
+  
+  
+  if (e > CUT_E && m > CUT_M && z < CUT_Z)
+  {
+    p1 = PEso * PMso * PZso * Pso;
+    p2 = PEsi * PMsi * PZsi * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_so++;
+      n_m_so++;
+      n_z_so++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_si++;
+      n_m_si++;
+      n_z_si++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+  else if (e > CUT_E && m > CUT_M && z > CUT_Z)
+  {
+    p1 = PEso * PMso * (1 - PZso) * Pso;
+    p2 = PEsi * PMsi * (1 - PZsi) * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_so++;
+      n_m_so++;
+      n_z_si++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_si++;
+      n_m_si++;
+      n_z_so++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+  else if (e > CUT_E && m < CUT_M && z < CUT_Z)
+  {
+    p1 = PEso * (1 - PMso) * PZso * Pso;
+    p2 = PEsi * (1 - PMsi) * PZsi * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_so++;
+      n_m_si++;
+      n_z_so++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_si++;
+      n_m_so++;
+      n_z_si++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+  else if (e > CUT_E && m < CUT_M && z > CUT_Z)
+  {
+    p1 = PEso * (1 - PMso) * (1 - PZso) * Pso;
+    p2 = PEsi * (1 - PMsi) * (1 - PZsi) * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_so++;
+      n_m_si++;
+      n_z_si++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_si++;
+      n_m_so++;
+      n_z_so++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+  else if (e < CUT_E && m > CUT_M && z < CUT_Z)
+  {
+    p1 = (1 - PEso) * PMso * PZso * Pso;
+    p2 = (1 - PEsi) * PMsi * PZsi * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_si++;
+      n_m_so++;
+      n_z_so++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_so++;
+      n_m_si++;
+      n_z_si++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+  else if (e < CUT_E && m > CUT_M && z > CUT_Z)
+  {
+    p1 = (1 - PEso) * PMso * (1 - PZso) * Pso;
+    p2 = (1 - PEsi) * PMsi * (1 - PZsi) * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_si++;
+      n_m_so++;
+      n_z_si++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_so++;
+      n_m_si++;
+      n_z_so++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+  else if (e < CUT_E && m < CUT_M && z < CUT_Z)
+  {
+    p1 = (1 - PEso) * (1 - PMso) * PZso * Pso;
+    p2 = (1 - PEsi) * (1 - PMsi) * PZsi * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_si++;
+      n_m_si++;
+      n_z_so++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_so++;
+      n_m_so++;
+      n_z_si++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+  else if (e < CUT_E && m < CUT_M && z > CUT_Z)
+  {
+    p1 = (1 - PEso) * (1 - PMso) * (1 - PZso) * Pso;
+    p2 = (1 - PEsi) * (1 - PMsi) * (1 - PZsi) * Psi;
+    n_total++;
+    if (p1 > p2)
+    {
+      n_sound++;
+      n_e_si++;
+      n_m_si++;
+      n_z_si++;
+    }
+    else
+    {
+      n_silence++;
+      n_e_so++;
+      n_m_so++;
+      n_z_so++;
+    }
+    update_values();
+    return p1 > p2;
+  }
+}
